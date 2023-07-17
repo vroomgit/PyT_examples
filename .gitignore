@@ -15,6 +15,8 @@ fast_neural_style/saved_models.zip
 gcn/cora/
 docs/build
 docs/venv
+word_language_model/word-language-model.ipynb
+word_language_model/.ipynb_checkpoints
 
 # vi backups
 *~

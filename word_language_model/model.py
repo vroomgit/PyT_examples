@@ -120,7 +120,7 @@ class TransformerModel(nn.Module):
         encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout)
         self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
         self.encoder = nn.Embedding(ntoken, ninp)
-        self.ninp = ninp
+        self.ninp = ninp #ninp is size of input embeddings
         self.decoder = nn.Linear(ninp, ntoken)
 
         self.init_weights()
@@ -145,8 +145,12 @@ class TransformerModel(nn.Module):
         else:
             self.src_mask = None
 
-        src = self.encoder(src) * math.sqrt(self.ninp)
+        src = self.encoder(src) * math.sqrt(self.ninp) # encoder is just the embeddings
+        print("Source, src (embeddings of input): ",src.shape)
         src = self.pos_encoder(src)
+        print("Source, src after position encodings: This is the input to transformer_Encoder",src.shape)
         output = self.transformer_encoder(src, self.src_mask)
+        print("Output after transformer encoder: ",output.shape)
         output = self.decoder(output)
+        print("Output after transformer Decoder: ",output.shape)
         return F.log_softmax(output, dim=-1)

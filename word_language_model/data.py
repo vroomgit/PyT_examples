@@ -37,12 +37,16 @@ class Corpus(object):
         # Tokenize file content
         with open(path, 'r', encoding="utf8") as f:
             idss = []
+            #c=0
             for line in f:
+                #c+=1
                 words = line.split() + ['<eos>']
+                #print("Serial ",c,words)
                 ids = []
                 for word in words:
                     ids.append(self.dictionary.word2idx[word])
                 idss.append(torch.tensor(ids).type(torch.int64))
+                
             ids = torch.cat(idss)
-
+            #print(ids)
         return ids

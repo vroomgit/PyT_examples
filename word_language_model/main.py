@@ -95,6 +95,7 @@ def batchify(data, bsz):
     data = data.narrow(0, 0, nbatch * bsz)
     # Evenly divide the data across the bsz batches.
     data = data.view(bsz, -1).t().contiguous()
+    #print("batchify final shape: ",data.shape)
     return data.to(device)
 
 eval_batch_size = 10
@@ -108,8 +109,11 @@ test_data = batchify(corpus.test, eval_batch_size)
 
 ntokens = len(corpus.dictionary)
 if args.model == 'Transformer':
+    print("Fitting Transformer Model")
     model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout).to(device)
+                                # (33278,        256,         2 ,        200,        2,             0.5)
 else:
+    print("Fitting Recurrent Model")
     model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.tied).to(device)
 
 criterion = nn.NLLLoss()
@@ -139,8 +143,12 @@ def repackage_hidden(h):
 
 def get_batch(source, i):
     seq_len = min(args.bptt, len(source) - 1 - i)
+    print("get_batch")
+    print(seq_len)
     data = source[i:i+seq_len]
+    print(data.shape)
     target = source[i+1:i+1+seq_len].view(-1)
+    print(target.shape)
     return data, target
 
 
@@ -179,7 +187,9 @@ def train():
         model.zero_grad()
         if args.model == 'Transformer':
             output = model(data)
+            print("Training loop output shape: ",output.shape)
             output = output.view(-1, ntokens)
+            print("Training loop output shape next view: ",output.shape)
         else:
             hidden = repackage_hidden(hidden)
             output, hidden = model(data, hidden)
