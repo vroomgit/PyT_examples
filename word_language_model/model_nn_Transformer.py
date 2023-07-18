@@ -110,18 +110,20 @@ class TransformerModel(nn.Module):
     def __init__(self, ntoken, ninp, nhead, nhid, nlayers, dropout=0.5):
         super(TransformerModel, self).__init__()
         try:
-            from torch.nn import TransformerEncoder, TransformerEncoderLayer
+            from torch.nn import TransformerEncoder, TransformerEncoderLayer, Transformer
         except BaseException as e:
             raise ImportError('TransformerEncoder module does not exist in PyTorch 1.1 or '
                               'lower.') from e
         self.model_type = 'Transformer'
         self.src_mask = None
+        self.tgt_mask = None
         self.pos_encoder = PositionalEncoding(ninp, dropout)
-        encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout)
-        self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
+        self.transformer = Transformer(d_model=ninp,nhead=8) #ninp=512, 256/8 = 64 dk, dv
+        #encoder_layers = TransformerEncoderLayer(ninp, nhead, nhid, dropout)
+        #self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
         self.encoder = nn.Embedding(ntoken, ninp)
         self.ninp = ninp #ninp is size of input embeddings
-        self.decoder = nn.Linear(ninp, ntoken)
+        #self.decoder = nn.Linear(ninp, ntoken)
 
         self.init_weights()
 
@@ -142,6 +144,10 @@ class TransformerModel(nn.Module):
             if self.src_mask is None or self.src_mask.size(0) != len(src):
                 mask = self._generate_square_subsequent_mask(len(src)).to(device)
                 self.src_mask = mask
+                
+                
+                tgt_mask = self._generate_square_subsequent_mask(len(src)).to(device)
+                self.tgt_mask = tgt_mask
         else:
             self.src_mask = None
 
@@ -149,8 +155,8 @@ class TransformerModel(nn.Module):
         print("Source, src (embeddings of input): ",src.shape) # [35, 512, 256]
         src = self.pos_encoder(src)
         print("Source, src after position encodings: This is the input to transformer_Encoder",src.shape) # [35, 512, 256]
-        output = self.transformer_encoder(src, self.src_mask) 
+        output = self.transformer(src, self.src_mask) 
         print("Output after transformer encoder: ",output.shape) # [35, 512, 256]
         output = self.decoder(output) 
-        print("Output after transformer Decoder: ",output.shape) # [17920, 33278]
+        print("Output after transformer Decoder: ",output.shape) # 
         return F.log_softmax(output, dim=-1)

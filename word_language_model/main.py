@@ -90,13 +90,15 @@ corpus = data.Corpus(args.data)
 
 def batchify(data, bsz):
     # Work out how cleanly we can divide the dataset into bsz parts.
-    nbatch = data.size(0) // bsz
+    nbatch = data.size(0) // bsz # For Train: 2088628/256 = 8158.703125
+    print("nbatch size: ", nbatch)
     # Trim off any extra elements that wouldn't cleanly fit (remainders).
-    data = data.narrow(0, 0, nbatch * bsz)
+    data = data.narrow(0, 0, nbatch * bsz) # drop remainders - 8158
+    print("data size: ", data.shape)
     # Evenly divide the data across the bsz batches.
-    data = data.view(bsz, -1).t().contiguous()
+    data = data.view(bsz, -1).t().contiguous() # transpose 
     #print("batchify final shape: ",data.shape)
-    return data.to(device)
+    return data.to(device) # For train data, with a batch size of 256, output is [8158, 256]
 
 eval_batch_size = 10
 train_data = batchify(corpus.train, args.batch_size)
@@ -143,13 +145,14 @@ def repackage_hidden(h):
 
 def get_batch(source, i):
     seq_len = min(args.bptt, len(source) - 1 - i)
-    print("get_batch")
-    print(seq_len)
+    print("get_batch") 
+    #print(seq_len) # if seq_len (35) is less than 8158 (for train) then this is 35
     data = source[i:i+seq_len]
-    print(data.shape)
+    print("X shape", data.shape) # [35, 256]
+    decoder_tgt = source[i+1:i+1+seq_len]
     target = source[i+1:i+1+seq_len].view(-1)
-    print(target.shape)
-    return data, target
+    print("Y shape", target.shape) # [8960] (35 * 256) 
+    return data, target, decoder_tgt
 
 
 def evaluate(data_source):
@@ -181,18 +184,19 @@ def train():
     if args.model != 'Transformer':
         hidden = model.init_hidden(args.batch_size)
     for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):
-        data, targets = get_batch(train_data, i)
+        data, targets, decoder_tgt = get_batch(train_data, i)
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         model.zero_grad()
         if args.model == 'Transformer':
-            output = model(data)
-            print("Training loop output shape: ",output.shape)
+            output = model(data, decoder_tgt)
+            print("Training loop output shape (after F.log_softmax(output, dim=-1)): ",output.shape)
             output = output.view(-1, ntokens)
             print("Training loop output shape next view: ",output.shape)
         else:
             hidden = repackage_hidden(hidden)
             output, hidden = model(data, hidden)
+        print("Before loss calculation: ", output.shape, targets.shape)
         loss = criterion(output, targets)
         loss.backward()
 
