@@ -163,10 +163,10 @@ def _generate_square_subsequent_mask(sz):
     return mask
 
 
-src = b1
-tgt = dt1
-src_mask = _generate_square_subsequent_mask(src.shape[0])
-tgt_mask = _generate_square_subsequent_mask(tgt.shape[0])
+src = emb
+tgt = emb_dec
+src_mask = _generate_square_subsequent_mask(emb.shape[0])
+tgt_mask = _generate_square_subsequent_mask(emb_dec.shape[0])
 
 output = t(src=src, tgt=tgt, src_mask=src_mask, tgt_mask=tgt_mask)
 

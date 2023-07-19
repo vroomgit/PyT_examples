@@ -123,7 +123,7 @@ class TransformerModel(nn.Module):
         #self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
         self.encoder = nn.Embedding(ntoken, ninp)
         self.ninp = ninp #ninp is size of input embeddings
-        #self.decoder = nn.Linear(ninp, ntoken)
+        self.decoder = nn.Linear(ninp, ntoken)
 
         self.init_weights()
 
@@ -138,7 +138,7 @@ class TransformerModel(nn.Module):
         nn.init.zeros_(self.decoder.bias)
         nn.init.uniform_(self.decoder.weight, -initrange, initrange)
 
-    def forward(self, src, has_mask=True):
+    def forward(self, src, decoder_tgt, has_mask=True):
         if has_mask:
             device = src.device
             if self.src_mask is None or self.src_mask.size(0) != len(src):
@@ -146,17 +146,22 @@ class TransformerModel(nn.Module):
                 self.src_mask = mask
                 
                 
-                tgt_mask = self._generate_square_subsequent_mask(len(src)).to(device)
+                tgt_mask = self._generate_square_subsequent_mask(len(decoder_tgt)).to(device)
                 self.tgt_mask = tgt_mask
         else:
             self.src_mask = None
 
-        src = self.encoder(src) * math.sqrt(self.ninp) # encoder is just the embeddings
-        print("Source, src (embeddings of input): ",src.shape) # [35, 512, 256]
+        src = self.encoder(src) * math.sqrt(self.ninp) # Paper Page 5. Multiply by sqrt(d_model). encoder is just the embeddings
+        tgt = self.encoder(decoder_tgt) * math.sqrt(self.ninp)
+        #print("Source, src (embeddings of input): ",src.shape) # [35, 512, 256]
         src = self.pos_encoder(src)
-        print("Source, src after position encodings: This is the input to transformer_Encoder",src.shape) # [35, 512, 256]
-        output = self.transformer(src, self.src_mask) 
-        print("Output after transformer encoder: ",output.shape) # [35, 512, 256]
+        tgt = self.pos_encoder(tgt)
+        #print("Source, src after position encodings: This is the input to transformer_Encoder",src.shape) # [35, 512, 256]
+        if has_mask:         
+            output = self.transformer(src=src, tgt=tgt, src_mask=self.src_mask, tgt_mask=self.tgt_mask) 
+        else:
+            output = self.transformer(src=src, tgt=tgt) 
+        #print("Output after transformer: ",output.shape) # [35, 512, 256]
         output = self.decoder(output) 
-        print("Output after transformer Decoder: ",output.shape) # 
+        #print("Output after transformer decoder linear transform: ",output.shape) # 
         return F.log_softmax(output, dim=-1)

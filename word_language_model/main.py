@@ -8,7 +8,8 @@ import torch.nn as nn
 import torch.onnx
 
 import data
-import model
+#import model
+import model_nn_Transformer as model
 
 parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM/GRU/Transformer Language Model')
 parser.add_argument('--data', type=str, default='./data/wikitext-2',
@@ -145,13 +146,13 @@ def repackage_hidden(h):
 
 def get_batch(source, i):
     seq_len = min(args.bptt, len(source) - 1 - i)
-    print("get_batch") 
+    #print("get_batch") 
     #print(seq_len) # if seq_len (35) is less than 8158 (for train) then this is 35
     data = source[i:i+seq_len]
-    print("X shape", data.shape) # [35, 256]
+    #print("X shape", data.shape) # [35, 256]
     decoder_tgt = source[i+1:i+1+seq_len]
     target = source[i+1:i+1+seq_len].view(-1)
-    print("Y shape", target.shape) # [8960] (35 * 256) 
+    #print("Y shape", target.shape) # [8960] (35 * 256) 
     return data, target, decoder_tgt
 
 
@@ -164,9 +165,9 @@ def evaluate(data_source):
         hidden = model.init_hidden(eval_batch_size)
     with torch.no_grad():
         for i in range(0, data_source.size(0) - 1, args.bptt):
-            data, targets = get_batch(data_source, i)
+            data, targets, decoder_tgt = get_batch(data_source, i)
             if args.model == 'Transformer':
-                output = model(data)
+                output = model(data, decoder_tgt)
                 output = output.view(-1, ntokens)
             else:
                 output, hidden = model(data, hidden)
@@ -190,13 +191,13 @@ def train():
         model.zero_grad()
         if args.model == 'Transformer':
             output = model(data, decoder_tgt)
-            print("Training loop output shape (after F.log_softmax(output, dim=-1)): ",output.shape)
+            #print("Training loop output shape (after F.log_softmax(output, dim=-1)): ",output.shape)
             output = output.view(-1, ntokens)
-            print("Training loop output shape next view: ",output.shape)
+            #print("Training loop output shape next view: ",output.shape)
         else:
             hidden = repackage_hidden(hidden)
             output, hidden = model(data, hidden)
-        print("Before loss calculation: ", output.shape, targets.shape)
+        #print("Before loss calculation: ", output.shape, targets.shape)
         loss = criterion(output, targets)
         loss.backward()
 
