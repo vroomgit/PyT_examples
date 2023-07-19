@@ -154,3 +154,21 @@ emb_dec = em(dt1)
 t = nn.Transformer(d_model=256)
 
 tr_out = t(emb, emb_dec)
+
+#_______________
+
+def _generate_square_subsequent_mask(sz):
+    mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+    return mask
+
+
+src = b1
+tgt = dt1
+src_mask = _generate_square_subsequent_mask(src.shape[0])
+tgt_mask = _generate_square_subsequent_mask(tgt.shape[0])
+
+output = t(src=src, tgt=tgt, src_mask=src_mask, tgt_mask=tgt_mask)
+
+
+
